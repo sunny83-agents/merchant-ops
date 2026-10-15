@@ -8,4 +8,12 @@ app.get('/health', (_req, res) => {
   });
 });
 
+// Handle unknown routes
+app.use((_req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: 'The requested resource was not found.',
+  });
+});
+
 export default app;

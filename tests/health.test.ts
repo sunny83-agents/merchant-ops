@@ -10,4 +10,14 @@ describe('GET /health', () => {
       status: 'ok',
     });
   });
+
+  it('returns 404 for an unknown route', async () => {
+    const response = await request(app).get('/unknown');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: 'Not Found',
+      message: 'The requested resource was not found.',
+    });
+  });
 });
