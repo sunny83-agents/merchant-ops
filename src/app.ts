@@ -1,11 +1,19 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
+import { pool } from './config/database';
 
 const app = express();
 
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-  });
+app.get('/health', async (_req, res, next) => {
+  try {
+    await pool.query('SELECT 1');
+
+    res.json({
+      status: 'ok',
+      database: 'connected',
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 // Temporary route for testing error handling
 if (process.env.NODE_ENV === 'test') {
