@@ -4,11 +4,14 @@
   "description": "Open-source backend platform for small-business order and payment operations.",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "lint": "eslint .",
-    "build": "tsc",
-    "start": "node dist/server.js"
-  },
+  "test": "jest",
+  "lint": "eslint .",
+  "build": "tsc",
+  "start": "node dist/server.js",
+  "migration:create": "node-pg-migrate create",
+  "migration:up": "node-pg-migrate up --envPath .env --database-url-var DATABASE_URL",
+  "migration:down": "node-pg-migrate down --envPath .env --database-url-var DATABASE_URL"
+},
   "keywords": [],
   "author": "",
   "license": "MIT",
@@ -23,6 +26,7 @@
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
     "jest": "^30.5.2",
+    "node-pg-migrate": "^9.0.0",
     "prettier": "^3.9.9",
     "supertest": "^7.3.1",
     "ts-jest": "^29.4.14",
