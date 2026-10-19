@@ -1,8 +1,10 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { pool } from './config/database';
+import customerRoutes from './modules/customers/customer.routes';
 
 const app = express();
-
+app.use(express.json());
+app.use('/customers', customerRoutes);
 app.get('/health', async (_req, res, next) => {
   try {
     await pool.query('SELECT 1');
