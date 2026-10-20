@@ -12,8 +12,11 @@ const databaseHost = process.env.DB_HOST ?? '127.0.0.1';
 const databasePort = Number(process.env.DB_PORT ?? 5432);
 const databaseName = process.env.DB_NAME ?? 'merchant_ops';
 const databaseUser = process.env.DB_USER ?? 'merchant_ops';
-const databasePassword =
-  process.env.DB_PASSWORD ?? 'merchant_ops_dev_password';
+const databasePassword = process.env.DB_PASSWORD;
+
+if (!databasePassword) {
+  throw new Error('DB_PASSWORD must be set in the environment');
+}
 
 if (
   !Number.isInteger(databasePort) ||
