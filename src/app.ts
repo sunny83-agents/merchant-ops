@@ -1,10 +1,19 @@
-import express, { type NextFunction, type Request, type Response } from 'express';
+import express, {
+  type NextFunction,
+  type Request,
+  type Response,
+} from 'express';
 import { pool } from './config/database';
 import customerRoutes from './modules/customers/customer.routes';
+import orderRoutes from './modules/orders/order.routes';
 
 const app = express();
+
 app.use(express.json());
+
 app.use('/customers', customerRoutes);
+app.use('/orders', orderRoutes);
+
 app.get('/health', async (_req, res, next) => {
   try {
     await pool.query('SELECT 1');
@@ -17,12 +26,14 @@ app.get('/health', async (_req, res, next) => {
     next(error);
   }
 });
+
 // Temporary route for testing error handling
 if (process.env.NODE_ENV === 'test') {
   app.get('/error-test', (_req, _res, next) => {
     next(new Error('Test internal error'));
   });
 }
+
 // Handle unknown routes
 app.use((_req, res) => {
   res.status(404).json({
