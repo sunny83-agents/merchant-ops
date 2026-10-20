@@ -2,7 +2,7 @@
   "name": "merchant-ops",
   "version": "1.0.0",
   "description": "Open-source backend platform for small-business order and payment operations.",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "test": "jest",
     "lint": "eslint .",
