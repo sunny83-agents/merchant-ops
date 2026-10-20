@@ -55,13 +55,29 @@ describe('Orders API', () => {
     expect(response.body.total_amount).toBe('125.50');
   });
 
-  it('lists orders', async () => {
-    jest.mocked(orderService.listOrdersService).mockResolvedValue([mockOrder]);
+      it('lists orders with pagination metadata', async () => {
+    jest.mocked(orderService.listOrdersService).mockResolvedValue({
+      orders: [mockOrder],
+      total: 21,
+    });
 
-    const response = await request(app).get('/orders');
+    const response = await request(app).get('/orders?page=2&limit=10');
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveLength(1);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.pagination).toEqual({
+      page: 2,
+      limit: 10,
+      total: 21,
+      totalPages: 3,
+    });
+    expect(orderService.listOrdersService).toHaveBeenCalledWith(2, 10);
+  });
+
+  it('rejects invalid pagination parameters', async () => {
+    const response = await request(app).get('/orders?page=0&limit=200');
+
+    expect(response.status).toBe(400);
   });
 
   it('gets an order by ID', async () => {

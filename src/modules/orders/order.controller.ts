@@ -61,12 +61,38 @@ export const createOrderController = async (
 };
 
 export const listOrdersController = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    res.status(200).json(await listOrdersService());
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 10);
+
+    if (
+      !Number.isInteger(page) ||
+      page < 1 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 100
+    ) {
+      res.status(400).json({
+        error: 'Page must be at least 1 and limit must be between 1 and 100',
+      });
+      return;
+    }
+
+    const result = await listOrdersService(page, limit);
+
+    res.status(200).json({
+      data: result.orders,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / limit),
+      },
+    });
   } catch (error) {
     next(error);
   }

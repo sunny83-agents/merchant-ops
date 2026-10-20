@@ -1,3 +1,4 @@
+
 import { pool } from '../../config/database';
 import type {
   CreateOrderInput,
@@ -18,12 +19,28 @@ export const createOrder = async (
   return result.rows[0];
 };
 
-export const listOrders = async (): Promise<Order[]> => {
-  const result = await pool.query<Order>(
-    'SELECT * FROM orders ORDER BY created_at DESC, id DESC',
-  );
+export const listOrders = async (
+  page: number,
+  limit: number,
+): Promise<{ orders: Order[]; total: number }> => {
+  const offset = (page - 1) * limit;
 
-  return result.rows;
+  const [ordersResult, countResult] = await Promise.all([
+    pool.query<Order>(
+      `SELECT * FROM orders
+       ORDER BY created_at DESC, id DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    ),
+    pool.query<{ total: string }>(
+      'SELECT COUNT(*) AS total FROM orders',
+    ),
+  ]);
+
+  return {
+    orders: ordersResult.rows,
+    total: Number(countResult.rows[0].total),
+  };
 };
 
 export const getOrderById = async (id: number): Promise<Order | null> => {

@@ -44,7 +44,10 @@ export const createOrderService = async (
   }
 };
 
-export const listOrdersService = (): Promise<Order[]> => listOrders();
+export const listOrdersService = (
+  page: number,
+  limit: number,
+): Promise<{ orders: Order[]; total: number }> => listOrders(page, limit);
 
 export const getOrderService = async (id: number): Promise<Order> => {
   const order = await getOrderById(id);
