@@ -1,14 +1,7 @@
-
 import { pool } from '../../config/database';
-import type {
-  CreateOrderInput,
-  Order,
-  UpdateOrderInput,
-} from './order.model';
+import type { CreateOrderInput, Order, UpdateOrderInput } from './order.model';
 
-export const createOrder = async (
-  input: CreateOrderInput,
-): Promise<Order> => {
+export const createOrder = async (input: CreateOrderInput): Promise<Order> => {
   const result = await pool.query<Order>(
     `INSERT INTO orders (customer_id, total_amount, currency)
      VALUES ($1, $2, $3)
@@ -22,18 +15,23 @@ export const createOrder = async (
 export const listOrders = async (
   page: number,
   limit: number,
+  status?: Order['status'],
 ): Promise<{ orders: Order[]; total: number }> => {
   const offset = (page - 1) * limit;
 
   const [ordersResult, countResult] = await Promise.all([
     pool.query<Order>(
       `SELECT * FROM orders
+       WHERE ($1::text IS NULL OR status = $1)
        ORDER BY created_at DESC, id DESC
-       LIMIT $1 OFFSET $2`,
-      [limit, offset],
+       LIMIT $2 OFFSET $3`,
+      [status ?? null, limit, offset],
     ),
     pool.query<{ total: string }>(
-      'SELECT COUNT(*) AS total FROM orders',
+      `SELECT COUNT(*) AS total
+       FROM orders
+       WHERE ($1::text IS NULL OR status = $1)`,
+      [status ?? null],
     ),
   ]);
 
@@ -44,18 +42,12 @@ export const listOrders = async (
 };
 
 export const getOrderById = async (id: number): Promise<Order | null> => {
-  const result = await pool.query<Order>(
-    'SELECT * FROM orders WHERE id = $1',
-    [id],
-  );
+  const result = await pool.query<Order>('SELECT * FROM orders WHERE id = $1', [id]);
 
   return result.rows[0] ?? null;
 };
 
-export const updateOrder = async (
-  id: number,
-  input: UpdateOrderInput,
-): Promise<Order | null> => {
+export const updateOrder = async (id: number, input: UpdateOrderInput): Promise<Order | null> => {
   const result = await pool.query<Order>(
     `UPDATE orders
      SET status = COALESCE($2, status),
@@ -71,10 +63,7 @@ export const updateOrder = async (
 };
 
 export const deleteOrder = async (id: number): Promise<boolean> => {
-  const result = await pool.query(
-    'DELETE FROM orders WHERE id = $1',
-    [id],
-  );
+  const result = await pool.query('DELETE FROM orders WHERE id = $1', [id]);
 
   return (result.rowCount ?? 0) > 0;
 };

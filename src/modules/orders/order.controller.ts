@@ -10,6 +10,7 @@ import {
   updateOrderService,
 } from './order.service';
 import { createOrderSchema, updateOrderSchema } from './order.validation';
+import type { OrderStatus } from './order.model';
 
 const parseId = (value: string | string[]): number | null => {
   if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) {
@@ -20,11 +21,7 @@ const parseId = (value: string | string[]): number | null => {
   return Number.isSafeInteger(id) ? id : null;
 };
 
-const handleError = (
-  error: unknown,
-  res: Response,
-  next: NextFunction,
-): void => {
+const handleError = (error: unknown, res: Response, next: NextFunction): void => {
   if (error instanceof ZodError) {
     res.status(400).json({
       error: 'Validation failed',
@@ -82,7 +79,28 @@ export const listOrdersController = async (
       return;
     }
 
-    const result = await listOrdersService(page, limit);
+    const status = req.query.status;
+
+    const validStatuses: OrderStatus[] = [
+      'pending',
+      'confirmed',
+      'processing',
+      'shipped',
+      'delivered',
+      'cancelled',
+    ];
+
+    if (status !== undefined) {
+      if (typeof status !== 'string' || !validStatuses.includes(status as OrderStatus)) {
+        res.status(400).json({
+          error: 'Invalid order status',
+          validStatuses,
+        });
+        return;
+      }
+    }
+
+    const result = await listOrdersService(page, limit, status as OrderStatus | undefined);
 
     res.status(200).json({
       data: result.orders,

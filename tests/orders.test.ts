@@ -55,7 +55,7 @@ describe('Orders API', () => {
     expect(response.body.total_amount).toBe('125.50');
   });
 
-      it('lists orders with pagination metadata', async () => {
+  it('lists orders with pagination metadata', async () => {
     jest.mocked(orderService.listOrdersService).mockResolvedValue({
       orders: [mockOrder],
       total: 21,
@@ -71,7 +71,26 @@ describe('Orders API', () => {
       total: 21,
       totalPages: 3,
     });
-    expect(orderService.listOrdersService).toHaveBeenCalledWith(2, 10);
+    expect(orderService.listOrdersService).toHaveBeenCalledWith(2, 10, undefined);
+  });
+  it('filters orders by a valid status', async () => {
+    jest.mocked(orderService.listOrdersService).mockResolvedValue({
+      orders: [mockOrder],
+      total: 1,
+    });
+
+    const response = await request(app).get('/orders?status=pending');
+
+    expect(response.status).toBe(200);
+    expect(orderService.listOrdersService).toHaveBeenCalledWith(1, 10, 'pending');
+  });
+
+  it('rejects an invalid order status filter', async () => {
+    const response = await request(app).get('/orders?status=unknown');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Invalid order status');
+    expect(orderService.listOrdersService).not.toHaveBeenCalled();
   });
 
   it('rejects invalid pagination parameters', async () => {
@@ -95,9 +114,7 @@ describe('Orders API', () => {
       status: 'shipped',
     });
 
-    const response = await request(app)
-      .patch('/orders/1')
-      .send({ status: 'shipped' });
+    const response = await request(app).patch('/orders/1').send({ status: 'shipped' });
 
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('shipped');

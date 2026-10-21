@@ -5,11 +5,7 @@ import {
   listOrders,
   updateOrder,
 } from './order.repository';
-import type {
-  CreateOrderInput,
-  Order,
-  UpdateOrderInput,
-} from './order.model';
+import type { CreateOrderInput, Order, UpdateOrderInput } from './order.model';
 
 export class OrderNotFoundError extends Error {
   constructor() {
@@ -25,18 +21,11 @@ export class CustomerNotFoundError extends Error {
   }
 }
 
-export const createOrderService = async (
-  input: CreateOrderInput,
-): Promise<Order> => {
+export const createOrderService = async (input: CreateOrderInput): Promise<Order> => {
   try {
     return await createOrder(input);
   } catch (error) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      error.code === '23503'
-    ) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23503') {
       throw new CustomerNotFoundError();
     }
 
@@ -47,7 +36,8 @@ export const createOrderService = async (
 export const listOrdersService = (
   page: number,
   limit: number,
-): Promise<{ orders: Order[]; total: number }> => listOrders(page, limit);
+  status?: Order['status'],
+): Promise<{ orders: Order[]; total: number }> => listOrders(page, limit, status);
 
 export const getOrderService = async (id: number): Promise<Order> => {
   const order = await getOrderById(id);
@@ -59,10 +49,7 @@ export const getOrderService = async (id: number): Promise<Order> => {
   return order;
 };
 
-export const updateOrderService = async (
-  id: number,
-  input: UpdateOrderInput,
-): Promise<Order> => {
+export const updateOrderService = async (id: number, input: UpdateOrderInput): Promise<Order> => {
   const order = await updateOrder(id, input);
 
   if (!order) {
