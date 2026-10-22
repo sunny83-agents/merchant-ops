@@ -6,14 +6,14 @@ import express, {
 import { pool } from './config/database';
 import customerRoutes from './modules/customers/customer.routes';
 import orderRoutes from './modules/orders/order.routes';
-
+import paymentRoutes from './modules/payments/payment.routes';
 const app = express();
 
 app.use(express.json());
 
 app.use('/customers', customerRoutes);
 app.use('/orders', orderRoutes);
-
+app.use('/payments', paymentRoutes);
 app.get('/health', async (_req, res, next) => {
   try {
     await pool.query('SELECT 1');
@@ -42,10 +42,10 @@ app.use((_req, res) => {
   });
 });
 
-// Handle unexpected errors
+// Handle unexpected errors and service errors
 app.use(
   (
-    err: Error,
+    err: Error & { statusCode?: number },
     _req: Request,
     res: Response,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -53,11 +53,21 @@ app.use(
   ) => {
     console.error(err.message);
 
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'An unexpected error occurred.',
+    const statusCode =
+      typeof err.statusCode === 'number' &&
+      err.statusCode >= 400 &&
+      err.statusCode < 600
+        ? err.statusCode
+        : 500;
+
+    res.status(statusCode).json({
+      error:
+        statusCode === 500 ? 'Internal Server Error' : err.message,
+      message:
+        statusCode === 500
+          ? 'An unexpected error occurred.'
+          : err.message,
     });
   },
 );
-
 export default app;
