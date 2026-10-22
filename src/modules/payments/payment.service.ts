@@ -1,8 +1,4 @@
-import type {
-  CreatePaymentInput,
-  Payment,
-  UpdatePaymentInput,
-} from './payment.model';
+import type { CreatePaymentInput, Payment, UpdatePaymentInput } from './payment.model';
 import * as paymentRepository from './payment.repository';
 import { getOrderById } from '../orders/order.repository';
 
@@ -16,9 +12,7 @@ export class PaymentServiceError extends Error {
   }
 }
 
-export const createPayment = async (
-  input: CreatePaymentInput,
-): Promise<Payment> => {
+export const createPayment = async (input: CreatePaymentInput): Promise<Payment> => {
   const orderId = Number(input.order_id);
 
   if (!Number.isSafeInteger(orderId) || orderId <= 0) {
@@ -32,37 +26,36 @@ export const createPayment = async (
   }
 
   if (order.status === 'cancelled') {
-    throw new PaymentServiceError(
-      'Cannot create a payment for a cancelled order',
-      400,
-    );
+    throw new PaymentServiceError('Cannot create a payment for a cancelled order', 400);
   }
 
   if (!Number.isFinite(input.amount) || input.amount <= 0) {
     throw new PaymentServiceError('Payment amount must be positive', 400);
   }
 
-  if (input.amount > Number(order.total_amount)) {
-    throw new PaymentServiceError(
-      'Payment amount cannot exceed the order total',
-      400,
-    );
+  const amountInMinorUnits = Math.round(input.amount * 100);
+  const orderTotalInMinorUnits = Math.round(Number(order.total_amount) * 100);
+
+  if (
+    !Number.isSafeInteger(amountInMinorUnits) ||
+    !Number.isSafeInteger(orderTotalInMinorUnits) ||
+    amountInMinorUnits <= 0
+  ) {
+    throw new PaymentServiceError('Invalid monetary amount', 400);
+  }
+
+  if (amountInMinorUnits > orderTotalInMinorUnits) {
+    throw new PaymentServiceError('Payment amount cannot exceed the order total', 400);
   }
 
   const currency = input.currency ?? order.currency;
 
   if (!/^[A-Z]{3}$/.test(currency)) {
-    throw new PaymentServiceError(
-      'Currency must be a three-letter uppercase code',
-      400,
-    );
+    throw new PaymentServiceError('Currency must be a three-letter uppercase code', 400);
   }
 
   if (currency !== order.currency) {
-    throw new PaymentServiceError(
-      'Payment currency must match the order currency',
-      400,
-    );
+    throw new PaymentServiceError('Payment currency must match the order currency', 400);
   }
 
   return paymentRepository.createPayment({
@@ -90,10 +83,7 @@ export const getPaymentById = async (id: number): Promise<Payment> => {
   return payment;
 };
 
-export const updatePayment = async (
-  id: number,
-  input: UpdatePaymentInput,
-): Promise<Payment> => {
+export const updatePayment = async (id: number, input: UpdatePaymentInput): Promise<Payment> => {
   const existingPayment = await paymentRepository.getPaymentById(id);
 
   if (!existingPayment) {
@@ -105,10 +95,7 @@ export const updatePayment = async (
     input.status !== undefined &&
     input.status !== existingPayment.status
   ) {
-    throw new PaymentServiceError(
-      'Only pending payments can change status',
-      400,
-    );
+    throw new PaymentServiceError('Only pending payments can change status', 400);
   }
 
   if (
@@ -116,10 +103,7 @@ export const updatePayment = async (
     input.provider_reference !== null &&
     input.provider_reference.trim() === ''
   ) {
-    throw new PaymentServiceError(
-      'Provider reference cannot be empty',
-      400,
-    );
+    throw new PaymentServiceError('Provider reference cannot be empty', 400);
   }
 
   const updatedPayment = await paymentRepository.updatePayment(id, input);

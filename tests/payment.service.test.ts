@@ -1,4 +1,3 @@
-
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as paymentRepository from '../src/modules/payments/payment.repository';
 import { getOrderById } from '../src/modules/orders/order.repository';
@@ -143,15 +142,43 @@ describe('Payment service', () => {
 
       expect(mockedGetOrderById).not.toHaveBeenCalled();
     });
+    it('accepts a payment just below the order total', async () => {
+      mockedGetOrderById.mockResolvedValue(sampleOrder);
+      mockedPaymentRepository.createPayment.mockResolvedValue({
+        ...samplePayment,
+        amount: '99.99',
+      });
+
+      const result = await paymentService.createPayment({
+        order_id: '1',
+        amount: 99.99,
+      });
+
+      expect(result.amount).toBe('99.99');
+    });
+
+    it('rejects a payment that exceeds the order total by one paisa', async () => {
+      mockedGetOrderById.mockResolvedValue(sampleOrder);
+
+      await expect(
+        paymentService.createPayment({
+          order_id: '1',
+          amount: 100.01,
+        }),
+      ).rejects.toMatchObject({
+        message: 'Payment amount cannot exceed the order total',
+        statusCode: 400,
+      });
+
+      expect(mockedPaymentRepository.createPayment).not.toHaveBeenCalled();
+    });
   });
 
   describe('getPaymentById', () => {
     it('returns the payment when found', async () => {
       mockedPaymentRepository.getPaymentById.mockResolvedValue(samplePayment);
 
-      await expect(paymentService.getPaymentById(1)).resolves.toEqual(
-        samplePayment,
-      );
+      await expect(paymentService.getPaymentById(1)).resolves.toEqual(samplePayment);
     });
 
     it('rejects when the payment does not exist', async () => {
@@ -191,9 +218,7 @@ describe('Payment service', () => {
         status: 'succeeded',
       });
 
-      await expect(
-        paymentService.updatePayment(1, { status: 'failed' }),
-      ).rejects.toMatchObject({
+      await expect(paymentService.updatePayment(1, { status: 'failed' })).rejects.toMatchObject({
         message: 'Only pending payments can change status',
         statusCode: 400,
       });
@@ -215,13 +240,10 @@ describe('Payment service', () => {
     it('rejects updating a missing payment', async () => {
       mockedPaymentRepository.getPaymentById.mockResolvedValue(null);
 
-      await expect(
-        paymentService.updatePayment(999, { status: 'failed' }),
-      ).rejects.toMatchObject({
+      await expect(paymentService.updatePayment(999, { status: 'failed' })).rejects.toMatchObject({
         message: 'Payment not found',
         statusCode: 404,
       });
     });
   });
 });
-
