@@ -1,5 +1,6 @@
 import type { CreatePaymentInput, Payment, UpdatePaymentInput } from './payment.model';
 import * as paymentRepository from './payment.repository';
+import { PaymentRepositoryError } from './payment.repository';
 import { getOrderById } from '../orders/order.repository';
 
 export class PaymentServiceError extends Error {
@@ -58,10 +59,18 @@ export const createPayment = async (input: CreatePaymentInput): Promise<Payment>
     throw new PaymentServiceError('Payment currency must match the order currency', 400);
   }
 
-  return paymentRepository.createPayment({
-    ...input,
-    currency,
-  });
+  try {
+    return await paymentRepository.createPayment({
+      ...input,
+      currency,
+    });
+  } catch (error) {
+    if (error instanceof PaymentRepositoryError) {
+      throw new PaymentServiceError(error.message, error.statusCode);
+    }
+
+    throw error;
+  }
 };
 
 export const listPayments = (
@@ -106,7 +115,17 @@ export const updatePayment = async (id: number, input: UpdatePaymentInput): Prom
     throw new PaymentServiceError('Provider reference cannot be empty', 400);
   }
 
-  const updatedPayment = await paymentRepository.updatePayment(id, input);
+  let updatedPayment: Payment | null;
+
+  try {
+    updatedPayment = await paymentRepository.updatePayment(id, input);
+  } catch (error) {
+    if (error instanceof PaymentRepositoryError) {
+      throw new PaymentServiceError(error.message, error.statusCode);
+    }
+
+    throw error;
+  }
 
   if (!updatedPayment) {
     throw new PaymentServiceError('Payment not found', 404);

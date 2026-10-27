@@ -9,6 +9,7 @@ import {
   OrderNotFoundError,
   updateOrderService,
 } from './order.service';
+import { OrderRepositoryError } from './order.repository';
 import { createOrderSchema, updateOrderSchema } from './order.validation';
 import type { OrderStatus } from './order.model';
 
@@ -32,6 +33,11 @@ const handleError = (error: unknown, res: Response, next: NextFunction): void =>
 
   if (error instanceof CustomerNotFoundError) {
     res.status(400).json({ error: error.message });
+    return;
+  }
+
+  if (error instanceof OrderRepositoryError) {
+    res.status(error.statusCode).json({ error: error.message });
     return;
   }
 

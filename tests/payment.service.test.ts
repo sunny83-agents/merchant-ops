@@ -5,7 +5,17 @@ import * as paymentService from '../src/modules/payments/payment.service';
 import type { Payment } from '../src/modules/payments/payment.model';
 import type { Order } from '../src/modules/orders/order.model';
 
-jest.mock('../src/modules/payments/payment.repository');
+jest.mock('../src/modules/payments/payment.repository', () => {
+  const actual = jest.requireActual('../src/modules/payments/payment.repository') as typeof import('../src/modules/payments/payment.repository');
+
+  return {
+    ...actual,
+    createPayment: jest.fn(),
+    getPaymentById: jest.fn(),
+    listPayments: jest.fn(),
+    updatePayment: jest.fn(),
+  };
+});
 jest.mock('../src/modules/orders/order.repository');
 
 const mockedPaymentRepository = jest.mocked(paymentRepository);
@@ -172,8 +182,24 @@ describe('Payment service', () => {
 
       expect(mockedPaymentRepository.createPayment).not.toHaveBeenCalled();
     });
-  });
 
+    it('maps repository errors when creating a payment', async () => {
+      mockedGetOrderById.mockResolvedValue(sampleOrder);
+      mockedPaymentRepository.createPayment.mockRejectedValue(
+        new paymentRepository.PaymentRepositoryError(
+          'Payment amount exceeds the remaining order balance',
+          400,
+        ),
+      );
+
+      await expect(
+        paymentService.createPayment({ order_id: '1', amount: 50 }),
+      ).rejects.toMatchObject({
+        message: 'Payment amount exceeds the remaining order balance',
+        statusCode: 400,
+      });
+    });
+  });
   describe('getPaymentById', () => {
     it('returns the payment when found', async () => {
       mockedPaymentRepository.getPaymentById.mockResolvedValue(samplePayment);
